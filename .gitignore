@@ -1,0 +1,23 @@
+# Maven
+/target/
+*.log
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# VSCode (если используешь)
+.vscode/
+
+# OS system files
+.DS_Store
+Thumbs.db
+
+# Test data (можно исключить большие генерации)
+orders_10000.json
+paymentmethods_1000.json
+
+# Backup or temp files
+*.tmp
+*.swp
+*.bak
