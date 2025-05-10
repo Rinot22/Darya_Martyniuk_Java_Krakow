@@ -38,6 +38,8 @@
   </dependencies>
 
   <build>
+
+    <finalName>darya_martyniuk_java_krakow_test_task</finalName>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
