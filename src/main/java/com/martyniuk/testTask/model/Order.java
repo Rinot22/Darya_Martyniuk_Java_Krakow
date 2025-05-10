@@ -6,7 +6,7 @@ import java.util.List;
 public class Order {
     public String id;
     public double value;
-    public List<String> promotions = new ArrayList<String>();
+    public List<String> promotions = new ArrayList<>();
 
     public Order() {}
 
