@@ -2,8 +2,7 @@ package com.martyniuk.testTask.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.martyniuk.testTask.model.Order;
-import com.martyniuk.testTask.model.PaymentMethod;
+
 
 import java.io.File;
 import java.io.IOException;
