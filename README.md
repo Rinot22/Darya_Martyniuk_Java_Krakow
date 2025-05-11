@@ -17,7 +17,7 @@ It selects the optimal combination of payment methods to minimize total cost and
 
 # Run
 
-1. Download `Darya_Martyniuk_Java_Krakow.jar` from [Google Drive](https://drive.google.com/drive/u/0/folders/1uFDz_DwXKekzFeQ8RljLZ2HYjauXAUX1)
+1. Download `Darya_Martyniuk_Java_Krakow.jar` from [Google Drive](https://drive.google.com/drive/folders/1uFDz_DwXKekzFeQ8RljLZ2HYjauXAUX1)
 2. Open a terminal and navigate to the folder containing the JAR file:
    ```bash
    cd path/to/jar
