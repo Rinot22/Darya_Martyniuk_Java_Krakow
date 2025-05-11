@@ -44,6 +44,8 @@ public class Optimizer {
     public Map<String, Double> optimize() {
         for (int i = 0; i < orders.size(); i++) {
             Order current = orders.get(i);
+
+            // simulate cost for current and next order to decide optimal order
             if (i + 1 < orders.size()) {
                 Order next = orders.get(i + 1);
                 double currentCost = simulateCost(current);
@@ -63,17 +65,20 @@ public class Optimizer {
         return spent;
     }
 
+    // simulate the best possible cost for a given order without modifying states
     private double simulateCost(Order order) {
         double base = order.value;
         double best = Double.MAX_VALUE;
 
         PaymentMethod punkty = methodMap.get("PUNKTY");
+
         // only apply full discount if PUNKTY covers full value
         if (punkty != null && punkty.limit >= base) {
             double discounted = round(base * (1 - punkty.discount / 100.0));
             best = Math.min(best, discounted);
         }
 
+        // use a single promotional card if limit allows
         if (order.promotions != null) {
             for (String id : order.promotions) {
                 PaymentMethod pm = methodMap.get(id);
@@ -84,6 +89,7 @@ public class Optimizer {
             }
         }
 
+        // mixed payment
         double ten = round(base * 0.10);
         double rest = round(base * 0.90);
         if (punkty != null && punkty.limit >= ten) {
@@ -97,6 +103,7 @@ public class Optimizer {
         return best;
     }
 
+    // apply optimal strategy for the given order and updates method limits
     private void applyBest(Order order) {
         double base = order.value;
         PaymentMethod punkty = methodMap.get("PUNKTY");
