@@ -1,5 +1,6 @@
 package com.martyniuk.testTask;
 
+import com.martyniuk.testTask.exception.NoAvailablePaymentException;
 import com.martyniuk.testTask.model.Order;
 import com.martyniuk.testTask.model.PaymentMethod;
 
@@ -156,6 +157,10 @@ public class Optimizer {
                     }
                 }
             }
+        }
+
+        if (best == Double.MAX_VALUE) {
+            throw new NoAvailablePaymentException(order.id);
         }
 
         apply.run();
