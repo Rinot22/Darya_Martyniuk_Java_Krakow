@@ -1,6 +1,7 @@
-package java;
+package com.martyniuk.tests;
 
 import com.martyniuk.testTask.Optimizer;
+import com.martyniuk.testTask.exception.NoAvailablePaymentException;
 import com.martyniuk.testTask.model.Order;
 import com.martyniuk.testTask.model.PaymentMethod;
 import org.junit.jupiter.api.Test;
@@ -55,6 +56,20 @@ public class OptimizerTest {
 
         assertEquals(10.0, result.get("PUNKTY"));
         assertEquals(90.0, result.get("CARD1"));
+    }
+
+    @Test
+    public void testNoAvailablePayment() {
+        List<Order> orders = List.of(
+                createOrder("O1", 100.0, null)
+        );
+        List<PaymentMethod> methods = List.of(
+                createMethod("CARD1", 0, 0.0)
+        );
+
+        assertThrows(NoAvailablePaymentException.class, () -> {
+            new Optimizer(orders, methods).optimize();
+        });
     }
 
     private Order createOrder(String id, double value, List<String> promotions) {

@@ -1,4 +1,4 @@
-package java;
+package com.martyniuk.tests;
 
 import com.martyniuk.testTask.model.Order;
 import com.martyniuk.testTask.model.PaymentMethod;
