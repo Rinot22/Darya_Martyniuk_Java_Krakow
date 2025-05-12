@@ -1,7 +1,7 @@
 # Description
 
 A Java application that optimizes payment method allocation for a set of orders, considering discounts, limits, and mixed payment strategies.  
-It selects the optimal combination of payment methods to minimize total cost and reduce card usage where possible.
+It selects the optimal combination of payment methods to **minimize total cost** and **reduce card usage**, based on a greedy strategy.
 
 ---
 
@@ -9,9 +9,9 @@ It selects the optimal combination of payment methods to minimize total cost and
 
 - Fat JAR packaging
 - Reads and parses orders and payment methods from JSON files
-- Uses a lookahead strategy to evaluate combinations
+- Greedy algorithm that prioritizes the cheapest available option
 - Gracefully handles invalid inputs and missing files
-- Fully tested with JUnit 5
+- Tested with JUnit 5
 
 ---
 
@@ -75,7 +75,7 @@ Tests cover:
 - The application requires **exactly two arguments**; incorrect usage will result in an error message.
 - If input files are missing, unreadable, or malformed, the app will report:
   ```
-  ❌ Failed to read input files: [error details]
+  Failed to read input files: [error details]
   ```
 - Common input issues:
   - Missing required fields (`id`, `value`, `promotions`)
