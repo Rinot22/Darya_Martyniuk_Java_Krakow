@@ -7,167 +7,131 @@ import com.martyniuk.testTask.model.PaymentMethod;
 import java.util.*;
 
 public class Optimizer {
+
     private final List<Order> orders;
-    private final List<PaymentMethod> methods;
-    private final Map<String, Double> spent = new HashMap<>();
     private final Map<String, PaymentMethod> methodMap = new HashMap<>();
+    private final Map<String, Double> spent = new HashMap<>();
 
     public Optimizer(List<Order> orders, List<PaymentMethod> methods) {
-        if (orders == null || orders.isEmpty()) {
+        if (orders == null || orders.isEmpty())
             throw new IllegalArgumentException("Order list is empty or null");
-        }
-        if (methods == null || methods.isEmpty()) {
+        if (methods == null || methods.isEmpty())
             throw new IllegalArgumentException("Payment method list is empty or null");
-        }
 
-        for (Order order : orders) {
-            if (order.value <= 0) {
-                throw new IllegalArgumentException("Invalid order value: " + order.id);
-            }
-        }
-
-        for (PaymentMethod method : methods) {
-            if (method.discount < 0 || method.discount > 100) {
-                throw new IllegalArgumentException("Invalid discount for method: " + method.id);
-            }
-            if (method.limit < 0) {
-                throw new IllegalArgumentException("Negative limit for method: " + method.id);
-            }
-        }
         this.orders = orders;
-        this.methods = methods;
-        for (PaymentMethod pm : methods) {
-            methodMap.put(pm.id, pm);
-            spent.put(pm.id, 0.0);
+
+        for (PaymentMethod m : methods) {
+            if (m.getDiscount() < 0 || m.getDiscount() > 100)
+                throw new IllegalArgumentException("Invalid discount: " + m.getId());
+            if (m.getLimit() < 0)
+                throw new IllegalArgumentException("Negative limit: " + m.getId());
+
+            methodMap.put(m.getId(), m);
+            spent.put(m.getId(), 0.0);
         }
     }
 
     public Map<String, Double> optimize() {
-        for (int i = 0; i < orders.size(); i++) {
-            Order current = orders.get(i);
+        List<Order> noPromoOrders = new ArrayList<>();
 
-            // simulate cost for current and next order to decide optimal order
-            if (i + 1 < orders.size()) {
-                Order next = orders.get(i + 1);
-                double currentCost = simulateCost(current);
-                double nextCost = simulateCost(next);
-
-                if (nextCost < currentCost) {
-                    applyBest(next);
-                    applyBest(current);
-                    i++;
-                } else {
-                    applyBest(current);
-                }
+        List<Order> promoOrders = new ArrayList<>();
+        for (Order order : orders) {
+            if (order.getPromotions() == null || order.getPromotions().isEmpty()) {
+                noPromoOrders.add(order);
             } else {
-                applyBest(current);
+                promoOrders.add(order);
             }
         }
+
+        Map<String, List<Order>> grouped = new HashMap<>();
+        for (Order order : promoOrders) {
+            for (String promo : order.getPromotions()) {
+                grouped.computeIfAbsent(promo, k -> new ArrayList<>()).add(order);
+            }
+        }
+
+        Set<String> processedOrders = new HashSet<>();
+
+        for (Order order : promoOrders) {
+            if (processedOrders.contains(order.getId())) continue;
+
+            double bestCost = Double.MAX_VALUE;
+            PaymentMethod bestMethod = null;
+
+            for (String promoId : order.getPromotions()) {
+                PaymentMethod method = methodMap.get(promoId);
+                if (method == null) continue;
+
+                double cardCost = round(order.getValue() * (1 - method.getDiscount() / 100.0));
+                if (method.getLimit() >= cardCost && cardCost < bestCost) {
+                    bestCost = cardCost;
+                    bestMethod = method;
+                }
+            }
+
+            PaymentMethod punkty = methodMap.get("PUNKTY");
+            if (punkty != null && punkty.getLimit() >= order.getValue()) {
+                double punktyCost = round(order.getValue() * (1 - punkty.getDiscount() / 100.0));
+                if (punktyCost < bestCost && punkty.getLimit() >= punktyCost) {
+                    bestMethod = punkty;
+                    bestCost = punktyCost;
+                }
+            }
+
+            if (bestMethod != null && bestMethod.getLimit() >= bestCost) {
+                applyDiscount(bestMethod, bestCost);
+                processedOrders.add(order.getId());
+            }
+
+            if (bestMethod == null) {
+                throw new NoAvailablePaymentException("No available method for order: " + order.getId());
+            }
+        }
+
+
+        noPromoOrders.sort(Comparator.comparingDouble(Order::getValue));
+
+        for (Order order : noPromoOrders) {
+            PaymentMethod punkty = methodMap.get("PUNKTY");
+            if (punkty == null) continue;
+
+            double fullDiscounted = round(order.getValue() * (1 - punkty.getDiscount() / 100.0));
+
+            if (punkty.getLimit() >= fullDiscounted) {
+                // PUNKTY can fully cover the discounted price
+                punkty.setLimit(punkty.getLimit() - fullDiscounted);
+                spent.put(punkty.getId(), spent.get(punkty.getId()) + fullDiscounted);
+                continue; // order paid — skip to next
+            }
+
+            double discounted = round(order.getValue() * 0.90);
+            double minPointsRequired = round(order.getValue() * 0.10);
+            double pointsUsed = Math.min(punkty.getLimit(), discounted);
+            double cardPart = discounted - pointsUsed;
+
+            if (punkty.getLimit() >= minPointsRequired) {
+                for (PaymentMethod pm : methodMap.values()) {
+                    if (!pm.getId().equals("PUNKTY") && pm.getLimit() >= cardPart) {
+                        punkty.setLimit(punkty.getLimit() - pointsUsed);
+                        spent.put(punkty.getId(), spent.get(punkty.getId()) + pointsUsed);
+
+                        pm.setLimit(pm.getLimit() - cardPart);
+                        spent.put(pm.getId(), spent.get(pm.getId()) + cardPart);
+                        break;
+                    }
+                }
+            }
+        }
+
         return spent;
     }
 
-    // simulate the best possible cost for a given order without modifying states
-    private double simulateCost(Order order) {
-        double base = order.value;
-        double best = Double.MAX_VALUE;
-
-        PaymentMethod punkty = methodMap.get("PUNKTY");
-
-        // only apply full discount if PUNKTY covers full value
-        if (punkty != null && punkty.limit >= base) {
-            double discounted = round(base * (1 - punkty.discount / 100.0));
-            best = Math.min(best, discounted);
-        }
-
-        // use a single promotional card if limit allows
-        if (order.promotions != null) {
-            for (String id : order.promotions) {
-                PaymentMethod pm = methodMap.get(id);
-                if (pm != null) {
-                    double discounted = round(base * (1 - pm.discount / 100.0));
-                    if (pm.limit >= discounted) best = Math.min(best, discounted);
-                }
-            }
-        }
-
-        // mixed payment
-        double ten = round(base * 0.10);
-        double rest = round(base * 0.90);
-        if (punkty != null && punkty.limit >= ten) {
-            for (PaymentMethod pm : methods) {
-                if (!pm.id.equals("PUNKTY")) {
-                    if (pm.limit >= rest) best = Math.min(best, ten + rest);
-                }
-            }
-        }
-
-        return best;
-    }
-
-    // apply optimal strategy for the given order and updates method limits
-    private void applyBest(Order order) {
-        double base = order.value;
-        PaymentMethod punkty = methodMap.get("PUNKTY");
-        double ten = round(base * 0.10);
-        double rest = round(base * 0.90);
-
-        double best = Double.MAX_VALUE;
-        Runnable apply = () -> {};
-
-        if (punkty != null) {
-            double discounted = round(base * (1 - punkty.discount / 100.0));
-            if (punkty.limit >= discounted && discounted < best) {
-                best = discounted;
-                apply = () -> {
-                    punkty.limit -= discounted;
-                    spent.put("PUNKTY", spent.get("PUNKTY") + discounted);
-                };
-            }
-        }
-
-        if (order.promotions != null) {
-            for (String id : order.promotions) {
-                PaymentMethod pm = methodMap.get(id);
-                if (pm != null) {
-                    double discounted = round(base * (1 - pm.discount / 100.0));
-                    if (pm.limit >= discounted && discounted < best) {
-                        best = discounted;
-                        PaymentMethod card = pm;
-                        apply = () -> {
-                            card.limit -= discounted;
-                            spent.put(card.id, spent.get(card.id) + discounted);
-                        };
-                    }
-                }
-            }
-        }
-
-        if (punkty != null && punkty.limit >= ten) {
-            for (PaymentMethod pm : methods) {
-                if (!pm.id.equals("PUNKTY")) {
-                    if (pm.limit >= rest && ten + rest < best) {
-                        best = ten + rest;
-                        PaymentMethod card = pm;
-                        apply = () -> {
-                            punkty.limit -= ten;
-                            card.limit -= rest;
-                            spent.put("PUNKTY", spent.get("PUNKTY") + ten);
-                            spent.put(card.id, spent.get(card.id) + rest);
-                        };
-                    }
-                }
-            }
-        }
-
-        if (best == Double.MAX_VALUE) {
-            throw new NoAvailablePaymentException(order.id);
-        }
-
-        apply.run();
+    private void applyDiscount(PaymentMethod method, double cost) {
+        method.setLimit(method.getLimit() - cost);
+        spent.put(method.getId(), spent.get(method.getId()) + cost);
     }
 
     private double round(double x) {
         return Math.round(x * 100.0) / 100.0;
     }
 }
-
