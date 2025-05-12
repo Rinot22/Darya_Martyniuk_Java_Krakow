@@ -23,9 +23,9 @@ public class JsonReaderTest {
 
         List<Order> orders = JsonReader.readList(temp.getAbsolutePath(), ListType.ORDER_LIST);
         assertEquals(1, orders.size());
-        assertEquals("ORDER1", orders.get(0).id);
-        assertEquals(123.45, orders.get(0).value);
-        assertEquals(List.of("CARD"), orders.get(0).promotions);
+        assertEquals("ORDER1", orders.get(0).getId());
+        assertEquals(123.45, orders.get(0).getValue());
+        assertEquals(List.of("CARD"), orders.get(0).getPromotions());
     }
 
     @Test
@@ -38,9 +38,9 @@ public class JsonReaderTest {
 
         List<PaymentMethod> methods = JsonReader.readList(temp.getAbsolutePath(), ListType.PAYMENT_METHOD_LIST);
         assertEquals(1, methods.size());
-        assertEquals("CARD", methods.get(0).id);
-        assertEquals(10, methods.get(0).discount);
-        assertEquals(500.0, methods.get(0).limit);
+        assertEquals("CARD", methods.get(0).getId());
+        assertEquals(10, methods.get(0).getDiscount());
+        assertEquals(500.0, methods.get(0).getLimit());
     }
 
     @Test
